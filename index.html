@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Editor de Texturas 3D</title>
   <style>
+    
     body {
       margin: 0;
       display: flex;
@@ -17,13 +18,34 @@
       max-height: 100vh;
       overflow-y: auto;
     }
-    #container {
-      width: 70vw;
-      height: 100vh;
-    }
+   
     .face-control {
       margin-bottom: 1rem;
     }
+    
+    .containerMODELO {
+  position: relative;
+  width: 70vw;
+  height: 100vh;
+}
+
+#container {
+  width: 100%;
+  height: 100%;
+}
+
+#fullscreenBtn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 999;
+  padding: 8px 12px;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
   </style>
 </head>
 <body>
@@ -43,9 +65,13 @@
       <button type="submit">Confirmar Cambios</button>
     </form>
   </div>
-
-  <div id="container"></div>
-
+  <div class="containerMODELO">
+    <div id="container">
+      
+    </div>
+  <button id="fullscreenBtn">Pantalla Completa</button>
+  </div>
+  
   <!-- Three.js clásico con GLTFLoader global -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/controls/OrbitControls.js"></script>

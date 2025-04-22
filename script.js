@@ -7,7 +7,7 @@ const objetosEditables = {
   'Faldon_derecho': null,
   'Faldon_izquierdo': null,
   'Lateral_derecho': null,
-  'Logo_frontal' : null,
+  'Logo_frontal': null,
   'Lateral_izquierdo': null,
   'Logo_derecho': null,
   'Logo_izquierdo': null
@@ -33,6 +33,7 @@ function init() {
   renderer.setSize(window.innerWidth * 0.7, window.innerHeight);
   renderer.setClearColor(0x808080);
   document.getElementById('container').appendChild(renderer.domElement);
+  
 
   // Luces
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -45,8 +46,12 @@ function init() {
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.enableZoom = false;
+  controls.enableZoom = true;
   controls.enablePan = false;
+
+  // Limitar el zoom
+  controls.minDistance = 4;
+  controls.maxDistance = 5.5;
 
   // Cargar modelo GLB
   const loader = new THREE.GLTFLoader();
@@ -65,7 +70,7 @@ function init() {
     },
     undefined,
     function (error) {
-      console.error('Error al cargar cubotexture.glb:', error);
+      console.error('Error al cargar vallamovilTRA.glb:', error);
     }
   );
 
@@ -86,8 +91,20 @@ function generateUI() {
     const control = templateControl.cloneNode(true);
     control.setAttribute('data-name', nombre);
     control.querySelector('label').textContent = nombre + ':';
-    control.querySelector('.color-input').style.display = 'inline-block';
+
+    const select = control.querySelector('.type-select');
+
+    // Configurar las opciones del select
+    select.innerHTML = `
+      <option value="">Elegir opción</option>
+      <option value="color">Color</option>
+      <option value="imagen">Imagen</option>
+    `;
+
+    // Ocultar inputs inicialmente
+    control.querySelector('.color-input').style.display = 'none';
     control.querySelector('.image-input').style.display = 'none';
+
     form.insertBefore(control, form.querySelector('button'));
   });
 
@@ -104,9 +121,12 @@ function generateUI() {
       if (select.value === 'color') {
         colorInput.style.display = 'inline-block';
         imageInput.style.display = 'none';
-      } else {
+      } else if (select.value === 'imagen') {
         colorInput.style.display = 'none';
         imageInput.style.display = 'inline-block';
+      } else {
+        colorInput.style.display = 'none';
+        imageInput.style.display = 'none';
       }
     });
   });
@@ -129,13 +149,13 @@ function handleApplyTextures(e) {
       mesh.material.map = null;
       mesh.material.color.set(color);
       mesh.material.needsUpdate = true;
-    } else {
+    } else if (type === 'imagen') {
       const file = control.querySelector('.image-input').files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function (event) {
           const tex = new THREE.TextureLoader().load(event.target.result, function (texture) {
-            texture.flipY = false; // ✅ Evita el espejo vertical
+            texture.flipY = false;
             mesh.material.map = texture;
             mesh.material.color.set(0xffffff);
             mesh.material.needsUpdate = true;
@@ -144,5 +164,54 @@ function handleApplyTextures(e) {
         reader.readAsDataURL(file);
       }
     }
+    // Si está en "Elegir opción", no se aplica nada.
   });
 }
+
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const textureForm = document.getElementById('textureForm');
+const container = document.getElementById('container');
+const fullscreenTarget = document.querySelector('.containerMODELO');
+
+let isFullscreen = false;
+
+fullscreenBtn.addEventListener('click', () => {
+  if (!isFullscreen) {
+    if (fullscreenTarget.requestFullscreen) {
+      fullscreenTarget.requestFullscreen();
+    } else if (fullscreenTarget.webkitRequestFullscreen) {
+      fullscreenTarget.webkitRequestFullscreen();
+    } else if (fullscreenTarget.msRequestFullscreen) {
+      fullscreenTarget.msRequestFullscreen();
+    }
+  } else {
+    // salir del fullscreen
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  isFullscreen = !!document.fullscreenElement;
+
+  if (isFullscreen) {
+    // Ajustes para modo fullscreen
+    textureForm.style.display = 'none';
+    fullscreenBtn.textContent = 'Salir de Pantalla Completa';
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  } else {
+    // Volver al modo inicial
+    textureForm.style.display = 'block';
+    fullscreenBtn.textContent = 'Pantalla Completa';
+    renderer.setSize(window.innerWidth * 0.7, window.innerHeight);
+    camera.aspect = (window.innerWidth * 0.7) / window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
+});
