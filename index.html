@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Editor de Texturas 3D</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      font-family: sans-serif;
+    }
+    #ui {
+      width: 30vw;
+      padding: 1rem;
+      background: #f0f0f0;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+    #container {
+      width: 70vw;
+      height: 100vh;
+    }
+    .face-control {
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h2>Editor de Texturas</h2>
+    <form id="textureForm">
+      <!-- BLOQUE PLANTILLA OCULTO -->
+      <div class="face-control" >
+        <label>Cara:</label>
+        <select class="type-select">
+          <option value="color">Color</option>
+          <option value="image">Imagen</option>
+        </select>
+        <input type="color" class="color-input" />
+        <input type="file" class="image-input" accept="image/*" style="display:none" />
+      </div>
+      <button type="submit">Confirmar Cambios</button>
+    </form>
+  </div>
+
+  <div id="container"></div>
+
+  <!-- Three.js clásico con GLTFLoader global -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
