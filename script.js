@@ -1,21 +1,24 @@
 let scene, camera, renderer, cube, controls;
+// variables para las posiciones de las cámaras
+let camara1Obj, camara2Obj, camara3Obj;
+
 
 const objetosEditables = {
-  'Frontal': null,
+  //'Frontal': null,
   'Posterior': null,
   'Posterior_placa': null,
   'Faldon_derecho': null,
   'Faldon_izquierdo': null,
   'Lateral_derecho': null,
-  'Logo_frontal': null,
   'Lateral_izquierdo': null,
+  'Logo_frontal': null,
   'Logo_derecho': null,
+  'Logo_frontal_carro' : null,
   'Logo_izquierdo': null
 };
 
 init();
 generateUI();
-
 function init() {
   // Crear escena y cámara
   scene = new THREE.Scene();
@@ -25,7 +28,7 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(2, 2, 3);
+  camera.position.set(2, 2, 3); // Cambiar la posición de la cámara si es necesario
   camera.lookAt(0, 0, 0);
 
   // Configurar renderer
@@ -33,7 +36,6 @@ function init() {
   renderer.setSize(window.innerWidth * 0.7, window.innerHeight);
   renderer.setClearColor(0x808080);
   document.getElementById('container').appendChild(renderer.domElement);
-  
 
   // Luces
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -46,12 +48,10 @@ function init() {
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.enableZoom = true;
+  controls.enableZoom = false;
   controls.enablePan = false;
 
-  // Limitar el zoom
-  controls.minDistance = 4;
-  controls.maxDistance = 5.5;
+  
 
   // Cargar modelo GLB
   const loader = new THREE.GLTFLoader();
@@ -66,6 +66,15 @@ function init() {
           child.material = child.material.clone(); // Para que no compartan material
           objetosEditables[child.name] = child;
         }
+
+        // Capturar los objetos "camara1", "camara2" y "camara3"
+        if (child.name === 'camara1') {
+          camara1Obj = child;
+        } else if (child.name === 'camara2') {
+          camara2Obj = child;
+        } else if (child.name === 'camara3') {
+          camara3Obj = child;
+        }
       });
     },
     undefined,
@@ -76,6 +85,83 @@ function init() {
 
   animate();
 }
+
+function goToPosition(view) {
+  let targetCamObj = null;
+
+  if (view === 'camara1') targetCamObj = camara1Obj;
+  else if (view === 'camara2') targetCamObj = camara2Obj;
+  else if (view === 'camara3') targetCamObj = camara3Obj;
+
+  if (!targetCamObj) return;
+
+  const pos = targetCamObj.position.clone();
+  const quat = targetCamObj.quaternion.clone(); // ← seguimos usando quaternion
+  let fov = 45; // ← valor base del FOV
+  let enableZoom = false; // ← por defecto no permitimos zoom
+  let minZoom = null, maxZoom = null; // ← configuramos sólo si queremos
+
+  // Personalizamos FOV y zoom según la cámara
+  if (view === 'camara1') {
+    fov = 32;
+    enableZoom = false; // no permitir zoom
+  } else if (view === 'camara2') {
+    fov = 32;
+    enableZoom = false; // no permitir zoom
+  } else if (view === 'camara3') {
+    fov = 32;
+    enableZoom = false; // en camara3 sí permitimos un poquito de zoom
+    minZoom = pos.length() * 0.9;
+    //maxZoom = pos.length() * 1.1;
+  }
+
+  // Actualizar FOV
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+
+  // Animar la posición
+  gsap.to(camera.position, {
+    duration: 2.5,
+    x: pos.x,
+    y: pos.y,
+    z: pos.z,
+    ease: "power2.out",
+    onUpdate: () => {
+      camera.lookAt(0, 0, 0);
+    },
+    onComplete: () => {
+      // Cuando termina el movimiento, configuramos los controles
+      controls.enableZoom = enableZoom;
+
+      if (enableZoom && minZoom !== null && maxZoom !== null) {
+        controls.minDistance = minZoom;
+        controls.maxDistance = maxZoom;
+      }
+
+      controls.enableRotate = true;
+      controls.enablePan = false;
+      controls.update();
+    }
+  });
+
+  // Animar rotación usando quaternions
+  const startQuat = camera.quaternion.clone();
+  const endQuat = quat;
+
+  let obj = { t: 0 };
+  gsap.to(obj, {
+    duration: 2.5,
+    t: 1,
+    ease: "power2.out",
+    onUpdate: () => {
+      THREE.Quaternion.slerp(startQuat, endQuat, camera.quaternion, obj.t);
+    }
+  });
+}
+
+
+
+
 
 function animate() {
   requestAnimationFrame(animate);
@@ -214,4 +300,48 @@ document.addEventListener('fullscreenchange', () => {
     camera.aspect = (window.innerWidth * 0.7) / window.innerHeight;
     camera.updateProjectionMatrix();
   }
+});
+
+const saveImageBtn = document.getElementById('saveImageBtn');
+
+saveImageBtn.addEventListener('click', () => {
+  // Guardar el tamaño original del renderer
+  const originalSize = {
+    width: renderer.domElement.width,
+    height: renderer.domElement.height,
+  };
+  const originalAspect = camera.aspect;
+
+  // Definir el tamaño para exportar (por ejemplo, 1920x1080)
+  const exportWidth = 1920;  // Puedes ajustarlo según lo necesites
+  const exportHeight = 1080; // Lo mismo aquí
+
+  // Cambiar temporalmente el tamaño del renderer
+  renderer.setSize(exportWidth, exportHeight, false);
+
+  // Ajustar el aspect ratio de la cámara para coincidir con el nuevo tamaño
+  camera.aspect = exportWidth / exportHeight;
+  camera.updateProjectionMatrix();
+
+  // Renderizar la escena con el nuevo tamaño
+  renderer.render(scene, camera);
+
+  // Obtener la imagen como DataURL
+  const dataURL = renderer.domElement.toDataURL('image/png');
+
+  // Crear un enlace de descarga
+  const link = document.createElement('a');
+  link.href = dataURL;
+  link.download = 'captura_modelo.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Restaurar el tamaño original del renderer
+  renderer.setSize(originalSize.width, originalSize.height, false);
+  camera.aspect = originalAspect;
+  camera.updateProjectionMatrix();
+
+  // Renderizar nuevamente con los ajustes originales de cámara
+  renderer.render(scene, camera);
 });
